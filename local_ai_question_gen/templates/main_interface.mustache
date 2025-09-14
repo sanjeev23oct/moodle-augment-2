@@ -1,0 +1,209 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_ai_question_gen/main_interface
+
+    Main interface template for AI Question Generator.
+
+    Context variables required for this template:
+    * sesskey - Session key for forms
+    * current_session - Current session object (if any)
+    * questions - Array of questions in current session
+    * question_types - Array of available question types
+    * question_counts - Array of question count options
+    * user_sessions - Array of user's recent sessions
+    * can_manage - Boolean if user can manage questions
+    * can_export - Boolean if user can export questions
+    * session_stats - Session statistics (if current_session exists)
+}}
+
+<div class="ai-question-gen-container">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>{{#str}}pluginname, local_ai_question_gen{{/str}}</h2>
+            {{#current_session}}
+                <p class="text-muted">{{#str}}sessionname, local_ai_question_gen{{/str}}: <strong>{{session_name}}</strong></p>
+            {{/current_session}}
+        </div>
+        <div class="col-md-4 text-right">
+            {{#user_sessions}}
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="sessionsDropdown" data-toggle="dropdown">
+                        {{#str}}loadsession, local_ai_question_gen{{/str}}
+                    </button>
+                    <div class="dropdown-menu">
+                        {{#user_sessions}}
+                            <a class="dropdown-item" href="?session_id={{id}}">{{session_name}}</a>
+                        {{/user_sessions}}
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="?">{{#str}}newsession, local_ai_question_gen{{/str}}</a>
+                    </div>
+                </div>
+            {{/user_sessions}}
+        </div>
+    </div>
+
+    <!-- Content Input Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>{{#str}}generatequestions, local_ai_question_gen{{/str}}</h4>
+        </div>
+        <div class="card-body">
+            <form id="question-generation-form">
+                <input type="hidden" name="sesskey" value="{{sesskey}}">
+                {{#current_session}}
+                    <input type="hidden" name="session_id" value="{{id}}">
+                {{/current_session}}
+                
+                <!-- Session Name -->
+                <div class="form-group">
+                    <label for="session-name">{{#str}}sessionname, local_ai_question_gen{{/str}}</label>
+                    <input type="text" class="form-control" id="session-name" name="session_name" 
+                           value="{{#current_session}}{{session_name}}{{/current_session}}"
+                           placeholder="Enter session name..." required>
+                    <small class="form-text text-muted">{{#str}}sessionname_help, local_ai_question_gen{{/str}}</small>
+                </div>
+
+                <!-- Content Input -->
+                <div class="form-group">
+                    <label for="content-text">{{#str}}contentinput, local_ai_question_gen{{/str}}</label>
+                    <textarea id="content-text" name="content" rows="8" class="form-control" 
+                              placeholder="Paste your chapter content here..." required>{{#current_session}}{{content_text}}{{/current_session}}</textarea>
+                    <small class="form-text text-muted">{{#str}}contentinput_help, local_ai_question_gen{{/str}}</small>
+                </div>
+
+                <!-- Question Type Selection -->
+                <div class="form-group">
+                    <label>{{#str}}questiontype, local_ai_question_gen{{/str}}</label>
+                    <div class="form-check-container">
+                        {{#question_types}}
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="question_type" 
+                                       id="type-{{value}}" value="{{value}}" {{#selected}}checked{{/selected}}>
+                                <label class="form-check-label" for="type-{{value}}">{{label}}</label>
+                            </div>
+                        {{/question_types}}
+                    </div>
+                    <small class="form-text text-muted">{{#str}}questiontype_help, local_ai_question_gen{{/str}}</small>
+                </div>
+
+                <!-- Question Count -->
+                <div class="form-group">
+                    <label for="question-count">{{#str}}questioncount, local_ai_question_gen{{/str}}</label>
+                    <select id="question-count" name="question_count" class="form-control" style="width: auto; display: inline-block;">
+                        {{#question_counts}}
+                            <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+                        {{/question_counts}}
+                    </select>
+                    <small class="form-text text-muted">{{#str}}questioncount_help, local_ai_question_gen{{/str}}</small>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-group">
+                    <button type="submit" id="generate-btn" class="btn btn-primary">
+                        <i class="fa fa-magic"></i> {{#str}}generate, local_ai_question_gen{{/str}}
+                    </button>
+                    {{#current_session}}
+                        <button type="button" id="regenerate-btn" class="btn btn-warning ml-2">
+                            <i class="fa fa-refresh"></i> {{#str}}regenerate, local_ai_question_gen{{/str}}
+                        </button>
+                    {{/current_session}}
+                    {{#can_manage}}
+                        <button type="button" id="add-manual-btn" class="btn btn-success ml-2">
+                            <i class="fa fa-plus"></i> {{#str}}addmanual, local_ai_question_gen{{/str}}
+                        </button>
+                    {{/can_manage}}
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loading-indicator" class="d-none">
+                    <div class="alert alert-info">
+                        <i class="fa fa-spinner fa-spin"></i> {{#str}}loading, local_ai_question_gen{{/str}}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Questions Section -->
+    {{#current_session}}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4>{{#str}}questionslist, local_ai_question_gen{{/str}}</h4>
+                <div>
+                    {{#session_stats}}
+                        <span class="badge badge-info mr-2">{{total_questions}} questions</span>
+                        {{#avg_confidence}}
+                            <span class="badge badge-secondary">{{avg_confidence}}% confidence</span>
+                        {{/avg_confidence}}
+                    {{/session_stats}}
+                    {{#can_export}}
+                        <button class="btn btn-sm btn-outline-primary ml-2" id="export-btn">
+                            <i class="fa fa-download"></i> Export
+                        </button>
+                    {{/can_export}}
+                </div>
+            </div>
+            <div class="card-body">
+                {{#questions}}
+                    {{>local_ai_question_gen/question_item}}
+                {{/questions}}
+                {{^questions}}
+                    <div class="text-center text-muted py-4">
+                        <i class="fa fa-question-circle fa-3x mb-3"></i>
+                        <p>{{#str}}noquestions, local_ai_question_gen{{/str}}</p>
+                        <p>Generate some questions using the form above!</p>
+                    </div>
+                {{/questions}}
+            </div>
+        </div>
+    {{/current_session}}
+
+    {{^current_session}}
+        <!-- Welcome Message -->
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fa fa-lightbulb-o fa-4x text-primary mb-3"></i>
+                <h3>Welcome to AI Question Generator</h3>
+                <p class="lead">Generate questions automatically from your content using AI.</p>
+                <p>Fill in the form above to get started, or load an existing session from the dropdown.</p>
+            </div>
+        </div>
+    {{/current_session}}
+</div>
+
+<!-- Question Edit Modal -->
+<div class="modal fade" id="question-edit-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{#str}}edit, local_ai_question_gen{{/str}} {{#str}}question, local_ai_question_gen{{/str}}</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Question edit form will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{{#str}}cancel, local_ai_question_gen{{/str}}</button>
+                <button type="button" class="btn btn-primary" id="save-question-btn">{{#str}}save, local_ai_question_gen{{/str}}</button>
+            </div>
+        </div>
+    </div>
+</div>

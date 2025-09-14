@@ -1,0 +1,171 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_ai_question_gen/question_item
+
+    Template for displaying a single question item.
+
+    Context variables required for this template:
+    * id - Question ID
+    * question_text - The question text
+    * question_type - Type of question (mcq, short_answer, etc.)
+    * question_data - Question-specific data (options, answers, etc.)
+    * difficulty - Question difficulty level
+    * ai_confidence - AI confidence score (if AI generated)
+    * is_ai_generated - Boolean if question was AI generated
+    * sort_order - Sort order for the question
+}}
+
+<div class="question-item card mb-3" data-question-id="{{id}}" data-sort-order="{{sort_order}}">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="question-meta">
+            <span class="question-number badge badge-primary mr-2">#{{sort_order}}</span>
+            <span class="question-type badge badge-info mr-2">
+                {{#question_type}}
+                    {{#str}}{{question_type}}, local_ai_question_gen{{/str}}
+                {{/question_type}}
+            </span>
+            {{#difficulty}}
+                <span class="difficulty badge badge-secondary mr-2">
+                    {{#str}}difficulty_{{difficulty}}, local_ai_question_gen{{/str}}
+                </span>
+            {{/difficulty}}
+            {{#is_ai_generated}}
+                {{#ai_confidence}}
+                    <span class="ai-confidence badge badge-success mr-2" title="AI Confidence">
+                        <i class="fa fa-robot"></i> {{ai_confidence}}%
+                    </span>
+                {{/ai_confidence}}
+            {{/is_ai_generated}}
+            {{^is_ai_generated}}
+                <span class="manual-created badge badge-warning mr-2" title="Manually Created">
+                    <i class="fa fa-user"></i> Manual
+                </span>
+            {{/is_ai_generated}}
+        </div>
+        <div class="question-actions">
+            <button class="btn btn-sm btn-outline-secondary edit-question-btn" data-question-id="{{id}}" title="{{#str}}edit, local_ai_question_gen{{/str}}">
+                <i class="fa fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger delete-question-btn" data-question-id="{{id}}" title="{{#str}}delete, local_ai_question_gen{{/str}}">
+                <i class="fa fa-trash"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-secondary move-handle" title="Drag to reorder">
+                <i class="fa fa-arrows"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <div class="question-content">
+            <h6 class="question-text">{{question_text}}</h6>
+            
+            {{#question_data}}
+                <!-- MCQ Options -->
+                {{#options}}
+                    <div class="mcq-options mt-3">
+                        <div class="list-group">
+                            {{#options.A}}
+                                <div class="list-group-item {{#correct_answer}}{{#equals correct_answer "A"}}list-group-item-success{{/equals}}{{/correct_answer}}">
+                                    <strong>A:</strong> {{options.A}}
+                                    {{#correct_answer}}{{#equals correct_answer "A"}}<i class="fa fa-check text-success float-right"></i>{{/equals}}{{/correct_answer}}
+                                </div>
+                            {{/options.A}}
+                            {{#options.B}}
+                                <div class="list-group-item {{#correct_answer}}{{#equals correct_answer "B"}}list-group-item-success{{/equals}}{{/correct_answer}}">
+                                    <strong>B:</strong> {{options.B}}
+                                    {{#correct_answer}}{{#equals correct_answer "B"}}<i class="fa fa-check text-success float-right"></i>{{/equals}}{{/correct_answer}}
+                                </div>
+                            {{/options.B}}
+                            {{#options.C}}
+                                <div class="list-group-item {{#correct_answer}}{{#equals correct_answer "C"}}list-group-item-success{{/equals}}{{/correct_answer}}">
+                                    <strong>C:</strong> {{options.C}}
+                                    {{#correct_answer}}{{#equals correct_answer "C"}}<i class="fa fa-check text-success float-right"></i>{{/equals}}{{/correct_answer}}
+                                </div>
+                            {{/options.C}}
+                            {{#options.D}}
+                                <div class="list-group-item {{#correct_answer}}{{#equals correct_answer "D"}}list-group-item-success{{/equals}}{{/correct_answer}}">
+                                    <strong>D:</strong> {{options.D}}
+                                    {{#correct_answer}}{{#equals correct_answer "D"}}<i class="fa fa-check text-success float-right"></i>{{/equals}}{{/correct_answer}}
+                                </div>
+                            {{/options.D}}
+                        </div>
+                        {{#explanation}}
+                            <div class="explanation mt-2">
+                                <small class="text-muted"><strong>Explanation:</strong> {{explanation}}</small>
+                            </div>
+                        {{/explanation}}
+                    </div>
+                {{/options}}
+                
+                <!-- Short Answer -->
+                {{#correct_answer}}
+                    {{^options}}
+                        <div class="short-answer mt-3">
+                            <div class="alert alert-light">
+                                <strong>{{#str}}correctanswer, local_ai_question_gen{{/str}}:</strong> {{correct_answer}}
+                                {{#alternative_answers}}
+                                    <br><small class="text-muted"><strong>Alternative answers:</strong> {{#alternative_answers}}{{.}}{{^last}}, {{/last}}{{/alternative_answers}}</small>
+                                {{/alternative_answers}}
+                                {{#keywords}}
+                                    <br><small class="text-muted"><strong>Keywords:</strong> {{#keywords}}{{.}}{{^last}}, {{/last}}{{/keywords}}</small>
+                                {{/keywords}}
+                            </div>
+                        </div>
+                    {{/options}}
+                {{/correct_answer}}
+                
+                <!-- Fill in the Blanks -->
+                {{#blanks}}
+                    <div class="fill-blanks mt-3">
+                        <div class="alert alert-light">
+                            <strong>Answers:</strong>
+                            <ul class="mb-0">
+                                {{#blanks}}
+                                    <li>Blank {{position}}: <strong>{{correct_answer}}</strong>
+                                        {{#alternatives}}
+                                            <small class="text-muted">(alternatives: {{#alternatives}}{{.}}{{^last}}, {{/last}}{{/alternatives}})</small>
+                                        {{/alternatives}}
+                                    </li>
+                                {{/blanks}}
+                            </ul>
+                        </div>
+                    </div>
+                {{/blanks}}
+                
+                <!-- True/False -->
+                {{^options}}{{^blanks}}{{^alternative_answers}}
+                    {{#correct_answer}}
+                        {{#equals question_type "truefalse"}}
+                            <div class="truefalse mt-3">
+                                <div class="alert alert-light">
+                                    <strong>{{#str}}correctanswer, local_ai_question_gen{{/str}}:</strong> 
+                                    <span class="badge {{#equals correct_answer "true"}}badge-success{{/equals}}{{#equals correct_answer "false"}}badge-danger{{/equals}}">
+                                        {{#equals correct_answer "true"}}True{{/equals}}{{#equals correct_answer "false"}}False{{/equals}}
+                                    </span>
+                                    {{#explanation}}
+                                        <br><small class="text-muted">{{explanation}}</small>
+                                    {{/explanation}}
+                                </div>
+                            </div>
+                        {{/equals}}
+                    {{/correct_answer}}
+                {{/alternative_answers}}{{/blanks}}{{/options}}
+            {{/question_data}}
+        </div>
+    </div>
+</div>

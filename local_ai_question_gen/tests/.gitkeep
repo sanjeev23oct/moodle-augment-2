@@ -1,0 +1,2 @@
+# This file ensures the tests directory is tracked in git
+# The tests directory will contain PHPUnit and Behat test cases

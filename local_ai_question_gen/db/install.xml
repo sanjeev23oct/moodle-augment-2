@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/ai_question_gen/db" VERSION="20240914" COMMENT="XMLDB file for AI Question Generator plugin"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="ai_question_gen_sessions" COMMENT="Question generation sessions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="user_id" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="session_name" TYPE="char" LENGTH="255" NOTNULL="true"/>
+        <FIELD NAME="content_text" TYPE="text" NOTNULL="true"/>
+        <FIELD NAME="content_hash" TYPE="char" LENGTH="64" NOTNULL="true"/>
+        <FIELD NAME="question_type" TYPE="char" LENGTH="50" NOTNULL="true"/>
+        <FIELD NAME="question_count" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="5"/>
+        <FIELD NAME="ai_provider" TYPE="char" LENGTH="50" NOTNULL="false" DEFAULT="openai"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="active"/>
+        <FIELD NAME="created_at" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="updated_at" TYPE="int" LENGTH="10" NOTNULL="true"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="user_id" TYPE="foreign" FIELDS="user_id" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="content_hash" UNIQUE="false" FIELDS="content_hash"/>
+        <INDEX NAME="created_at" UNIQUE="false" FIELDS="created_at"/>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
+        <INDEX NAME="question_type" UNIQUE="false" FIELDS="question_type"/>
+      </INDEXES>
+    </TABLE>
+    
+    <TABLE NAME="ai_question_gen_questions" COMMENT="Generated questions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="session_id" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="question_type" TYPE="char" LENGTH="50" NOTNULL="true"/>
+        <FIELD NAME="question_text" TYPE="text" NOTNULL="true"/>
+        <FIELD NAME="question_data" TYPE="text" NOTNULL="true" COMMENT="JSON data containing options, answers, etc."/>
+        <FIELD NAME="is_ai_generated" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1"/>
+        <FIELD NAME="ai_confidence" TYPE="number" LENGTH="3" DECIMALS="2" NOTNULL="false"/>
+        <FIELD NAME="difficulty" TYPE="char" LENGTH="20" NOTNULL="false" DEFAULT="medium"/>
+        <FIELD NAME="tags" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="created_by" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="created_at" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="updated_at" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="sort_order" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="active"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="session_id" TYPE="foreign" FIELDS="session_id" REFTABLE="ai_question_gen_sessions" REFFIELDS="id"/>
+        <KEY NAME="created_by" TYPE="foreign" FIELDS="created_by" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="question_type" UNIQUE="false" FIELDS="question_type"/>
+        <INDEX NAME="sort_order" UNIQUE="false" FIELDS="sort_order"/>
+        <INDEX NAME="difficulty" UNIQUE="false" FIELDS="difficulty"/>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
+        <INDEX NAME="created_at" UNIQUE="false" FIELDS="created_at"/>
+      </INDEXES>
+    </TABLE>
+    
+    <TABLE NAME="ai_question_gen_cache" COMMENT="Cache for AI responses">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="content_hash" TYPE="char" LENGTH="64" NOTNULL="true"/>
+        <FIELD NAME="question_type" TYPE="char" LENGTH="50" NOTNULL="true"/>
+        <FIELD NAME="question_count" TYPE="int" LENGTH="3" NOTNULL="true"/>
+        <FIELD NAME="ai_provider" TYPE="char" LENGTH="50" NOTNULL="true"/>
+        <FIELD NAME="ai_response" TYPE="text" NOTNULL="true" COMMENT="JSON response from AI"/>
+        <FIELD NAME="created_at" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="expires_at" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="hit_count" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="content_hash_type_provider" UNIQUE="true" FIELDS="content_hash, question_type, question_count, ai_provider"/>
+        <INDEX NAME="expires_at" UNIQUE="false" FIELDS="expires_at"/>
+        <INDEX NAME="created_at" UNIQUE="false" FIELDS="created_at"/>
+      </INDEXES>
+    </TABLE>
+    
+    <TABLE NAME="ai_question_gen_exports" COMMENT="Question export history">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="session_id" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="user_id" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="export_format" TYPE="char" LENGTH="20" NOTNULL="true"/>
+        <FIELD NAME="file_path" TYPE="char" LENGTH="500" NOTNULL="false"/>
+        <FIELD NAME="question_count" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="created_at" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="completed"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="session_id" TYPE="foreign" FIELDS="session_id" REFTABLE="ai_question_gen_sessions" REFFIELDS="id"/>
+        <KEY NAME="user_id" TYPE="foreign" FIELDS="user_id" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="created_at" UNIQUE="false" FIELDS="created_at"/>
+        <INDEX NAME="export_format" UNIQUE="false" FIELDS="export_format"/>
+        <INDEX NAME="status" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>
