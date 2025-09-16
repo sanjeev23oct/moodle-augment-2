@@ -52,8 +52,8 @@ class TestPDFProcessing:
         assert response.status_code == 400
         assert "Only PDF files are supported" in response.json()["detail"]
     
-    def test_pdf_upload_missing_file(self):
-        """Test upload without file."""
+    def test_missing_both_file_and_text(self):
+        """Test request without both file and text content."""
         response = client.post(
             "/generate-questions/deepseek",
             data={
@@ -62,8 +62,27 @@ class TestPDFProcessing:
                 "difficulty": "medium"
             }
         )
-        
-        assert response.status_code == 422  # Validation error
+
+        assert response.status_code == 400
+        assert "Either a PDF file or text content must be provided" in response.json()["detail"]
+
+    def test_both_file_and_text_provided(self):
+        """Test request with both file and text content."""
+        fake_file = io.BytesIO(b"Fake PDF content")
+
+        response = client.post(
+            "/generate-questions/deepseek",
+            files={"file": ("test.pdf", fake_file, "application/pdf")},
+            data={
+                "question_type": "mcq",
+                "num_questions": 5,
+                "difficulty": "medium",
+                "text_content": "Some text content"
+            }
+        )
+
+        assert response.status_code == 400
+        assert "Please provide either a PDF file or text content, not both" in response.json()["detail"]
 
 
 class TestQuestionGeneration:
@@ -197,6 +216,123 @@ class TestQuestionGeneration:
             }
         )
         
+        assert response.status_code == 422  # Validation error
+
+    @patch('app.call_deepseek_api')
+    def test_text_input_success(self, mock_deepseek_api):
+        """Test successful question generation with text input."""
+        # Mock DeepSeek API response
+        from app import QuestionGenerationResponse, Question
+        mock_questions = [
+            Question(
+                question_id="q1",
+                question_type=QuestionType.SHORT_ANSWER,
+                question_text="What is the main concept?",
+                correct_answer="The main concept is...",
+                explanation="This is the explanation"
+            )
+        ]
+
+        mock_response = QuestionGenerationResponse(
+            questions=mock_questions,
+            provider="deepseek",
+            model="deepseek-chat",
+            content_length=100
+        )
+        mock_deepseek_api.return_value = mock_response
+
+        response = client.post(
+            "/generate-questions/deepseek",
+            data={
+                "question_type": "short_answer",
+                "num_questions": 1,
+                "difficulty": "medium",
+                "text_content": "This is sample educational content for testing question generation."
+            }
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["provider"] == "deepseek"
+        assert len(data["questions"]) == 1
+        assert data["questions"][0]["question_type"] == "short_answer"
+
+    def test_text_input_too_short(self):
+        """Test with text content that is too short."""
+        response = client.post(
+            "/generate-questions/deepseek",
+            data={
+                "question_type": "mcq",
+                "num_questions": 1,
+                "difficulty": "medium",
+                "text_content": "Short"
+            }
+        )
+
+        assert response.status_code == 400
+        assert "Text content must be at least 10 characters long" in response.json()["detail"]
+
+
+class TestJSONEndpoints:
+    """Test cases for JSON-based endpoints."""
+
+    @patch('app.call_deepseek_api')
+    def test_deepseek_json_endpoint_success(self, mock_deepseek_api):
+        """Test successful question generation with JSON endpoint."""
+        # Mock DeepSeek API response
+        from app import QuestionGenerationResponse, Question
+        mock_questions = [
+            Question(
+                question_id="q1",
+                question_type=QuestionType.MCQ,
+                question_text="What is the main topic?",
+                correct_answer="A",
+                options=[
+                    MCQOption(option_id="A", text="Correct answer"),
+                    MCQOption(option_id="B", text="Wrong answer 1"),
+                    MCQOption(option_id="C", text="Wrong answer 2"),
+                    MCQOption(option_id="D", text="Wrong answer 3")
+                ],
+                explanation="This is the explanation"
+            )
+        ]
+
+        mock_response = QuestionGenerationResponse(
+            questions=mock_questions,
+            provider="deepseek",
+            model="deepseek-chat",
+            content_length=100
+        )
+        mock_deepseek_api.return_value = mock_response
+
+        response = client.post(
+            "/generate-questions/deepseek/json",
+            json={
+                "content": "This is sample educational content for testing question generation with sufficient length.",
+                "question_type": "mcq",
+                "num_questions": 1,
+                "difficulty": "medium"
+            }
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["provider"] == "deepseek"
+        assert len(data["questions"]) == 1
+        assert data["questions"][0]["question_type"] == "mcq"
+
+    def test_json_endpoint_validation_error(self):
+        """Test JSON endpoint with invalid data."""
+        response = client.post(
+            "/generate-questions/deepseek/json",
+            json={
+                "content": "Short",  # Too short
+                "question_type": "mcq",
+                "num_questions": 1,
+                "difficulty": "medium"
+            }
+        )
+
         assert response.status_code == 422  # Validation error
 
 

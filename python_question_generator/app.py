@@ -586,19 +586,21 @@ async def health_check():
 
 @app.post("/generate-questions/deepseek", response_model=QuestionGenerationResponse, tags=["Question Generation"])
 async def generate_questions_deepseek(
-    file: UploadFile = File(..., description="PDF file to process"),
     question_type: QuestionType = Form(..., description="Type of questions to generate"),
     num_questions: int = Form(5, ge=1, le=20, description="Number of questions to generate"),
-    difficulty: str = Form("medium", description="Difficulty level (easy, medium, hard)")
+    difficulty: str = Form("medium", description="Difficulty level (easy, medium, hard)"),
+    file: Optional[UploadFile] = File(None, description="PDF file to process (optional)"),
+    text_content: Optional[str] = Form(None, description="Direct text content for question generation (optional)")
 ):
     """
-    Generate questions from PDF content using DeepSeek AI.
+    Generate questions from PDF content or direct text using DeepSeek AI.
 
     Args:
-        file: PDF file to process
         question_type: Type of questions to generate
         num_questions: Number of questions to generate
         difficulty: Difficulty level
+        file: PDF file to process (optional)
+        text_content: Direct text content (optional)
 
     Returns:
         QuestionGenerationResponse: Generated questions
@@ -606,25 +608,51 @@ async def generate_questions_deepseek(
     Raises:
         HTTPException: If file processing or question generation fails
     """
-    logger.info(f"DeepSeek question generation request: {file.filename}, {question_type}, {num_questions} questions")
+    logger.info(f"DeepSeek question generation request: {question_type}, {num_questions} questions")
 
-    # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
+    # Validate that either file or text_content is provided
+    if not file and not text_content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF files are supported"
+            detail="Either a PDF file or text content must be provided"
         )
 
-    # Validate file size
-    if file.size and file.size > settings.max_file_size:
+    # Validate that both file and text_content are not provided
+    if file and text_content:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File size exceeds maximum limit of {settings.max_file_size} bytes"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide either a PDF file or text content, not both"
         )
 
     try:
-        # Extract text from PDF
-        content = extract_text_from_pdf(file)
+        # Get content from either file or direct text input
+        if file:
+            # Validate file type
+            if not file.filename.lower().endswith('.pdf'):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Only PDF files are supported"
+                )
+
+            # Validate file size
+            if file.size and file.size > settings.max_file_size:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"File size exceeds maximum limit of {settings.max_file_size} bytes"
+                )
+
+            # Extract text from PDF
+            content = extract_text_from_pdf(file)
+            logger.info(f"Extracted {len(content)} characters from PDF: {file.filename}")
+        else:
+            # Use direct text content
+            content = text_content.strip()
+            if len(content) < 10:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Text content must be at least 10 characters long"
+                )
+            logger.info(f"Using direct text content: {len(content)} characters")
 
         # Generate questions using DeepSeek
         response = await call_deepseek_api(content, question_type, num_questions, difficulty)
@@ -644,19 +672,21 @@ async def generate_questions_deepseek(
 
 @app.post("/generate-questions/snowflake", response_model=QuestionGenerationResponse, tags=["Question Generation"])
 async def generate_questions_snowflake(
-    file: UploadFile = File(..., description="PDF file to process"),
     question_type: QuestionType = Form(..., description="Type of questions to generate"),
     num_questions: int = Form(5, ge=1, le=20, description="Number of questions to generate"),
-    difficulty: str = Form("medium", description="Difficulty level (easy, medium, hard)")
+    difficulty: str = Form("medium", description="Difficulty level (easy, medium, hard)"),
+    file: Optional[UploadFile] = File(None, description="PDF file to process (optional)"),
+    text_content: Optional[str] = Form(None, description="Direct text content for question generation (optional)")
 ):
     """
-    Generate questions from PDF content using Snowflake Cortex AI.
+    Generate questions from PDF content or direct text using Snowflake Cortex AI.
 
     Args:
-        file: PDF file to process
         question_type: Type of questions to generate
         num_questions: Number of questions to generate
         difficulty: Difficulty level
+        file: PDF file to process (optional)
+        text_content: Direct text content (optional)
 
     Returns:
         QuestionGenerationResponse: Generated questions
@@ -664,25 +694,51 @@ async def generate_questions_snowflake(
     Raises:
         HTTPException: If file processing or question generation fails
     """
-    logger.info(f"Snowflake question generation request: {file.filename}, {question_type}, {num_questions} questions")
+    logger.info(f"Snowflake question generation request: {question_type}, {num_questions} questions")
 
-    # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
+    # Validate that either file or text_content is provided
+    if not file and not text_content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF files are supported"
+            detail="Either a PDF file or text content must be provided"
         )
 
-    # Validate file size
-    if file.size and file.size > settings.max_file_size:
+    # Validate that both file and text_content are not provided
+    if file and text_content:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File size exceeds maximum limit of {settings.max_file_size} bytes"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide either a PDF file or text content, not both"
         )
 
     try:
-        # Extract text from PDF
-        content = extract_text_from_pdf(file)
+        # Get content from either file or direct text input
+        if file:
+            # Validate file type
+            if not file.filename.lower().endswith('.pdf'):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Only PDF files are supported"
+                )
+
+            # Validate file size
+            if file.size and file.size > settings.max_file_size:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"File size exceeds maximum limit of {settings.max_file_size} bytes"
+                )
+
+            # Extract text from PDF
+            content = extract_text_from_pdf(file)
+            logger.info(f"Extracted {len(content)} characters from PDF: {file.filename}")
+        else:
+            # Use direct text content
+            content = text_content.strip()
+            if len(content) < 10:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Text content must be at least 10 characters long"
+                )
+            logger.info(f"Using direct text content: {len(content)} characters")
 
         # Generate questions using Snowflake Cortex
         response = await call_snowflake_cortex_api(content, question_type, num_questions, difficulty)
@@ -694,6 +750,72 @@ async def generate_questions_snowflake(
         raise
     except Exception as e:
         logger.error(f"Unexpected error in Snowflake question generation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during question generation"
+        )
+
+
+@app.post("/generate-questions/deepseek/json", response_model=QuestionGenerationResponse, tags=["Question Generation"])
+async def generate_questions_deepseek_json(request: QuestionGenerationRequest):
+    """
+    Generate questions from text content using DeepSeek AI (JSON endpoint).
+
+    Args:
+        request: QuestionGenerationRequest containing text content and parameters
+
+    Returns:
+        QuestionGenerationResponse: Generated questions
+
+    Raises:
+        HTTPException: If question generation fails
+    """
+    logger.info(f"DeepSeek JSON question generation request: {request.question_type}, {request.num_questions} questions")
+
+    try:
+        # Generate questions using DeepSeek
+        response = await call_deepseek_api(request.content, request.question_type, request.num_questions, request.difficulty)
+
+        logger.info("DeepSeek JSON question generation completed successfully")
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in DeepSeek JSON question generation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during question generation"
+        )
+
+
+@app.post("/generate-questions/snowflake/json", response_model=QuestionGenerationResponse, tags=["Question Generation"])
+async def generate_questions_snowflake_json(request: QuestionGenerationRequest):
+    """
+    Generate questions from text content using Snowflake Cortex AI (JSON endpoint).
+
+    Args:
+        request: QuestionGenerationRequest containing text content and parameters
+
+    Returns:
+        QuestionGenerationResponse: Generated questions
+
+    Raises:
+        HTTPException: If question generation fails
+    """
+    logger.info(f"Snowflake JSON question generation request: {request.question_type}, {request.num_questions} questions")
+
+    try:
+        # Generate questions using Snowflake Cortex
+        response = await call_snowflake_cortex_api(request.content, request.question_type, request.num_questions, request.difficulty)
+
+        logger.info("Snowflake JSON question generation completed successfully")
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in Snowflake JSON question generation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error during question generation"
