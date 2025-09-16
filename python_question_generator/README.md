@@ -4,9 +4,10 @@ A production-ready FastAPI application that generates educational questions from
 
 ## Features
 
-- **PDF Processing**: Extract text content from uploaded PDF files
+- **Flexible Input**: Support for both PDF file uploads and direct text input
 - **Multiple Question Types**: Support for MCQ, Short Answer, and Fill-in-the-Blanks questions
 - **Multiple AI Providers**: Support for Snowflake Cortex AI and DeepSeek AI
+- **Multiple API Formats**: Form-based endpoints for file uploads and JSON endpoints for text input
 - **Production Ready**: Comprehensive error handling, logging, and monitoring
 - **Type Safety**: Full Pydantic validation and type hints
 - **Environment Configuration**: Secure credential management via environment variables
@@ -64,19 +65,38 @@ The API will be available at `http://localhost:8000`
 - **GET** `/health`
 - Returns application status and provider availability
 
-### Question Generation with DeepSeek
+### Question Generation with DeepSeek (Form-based)
 - **POST** `/generate-questions/deepseek`
-- Upload PDF file and generate questions using DeepSeek AI
+- Generate questions using DeepSeek AI with either PDF upload or text input
 - Form data:
-  - `file`: PDF file (required)
   - `question_type`: "mcq", "short_answer", or "fill_in_blanks" (required)
   - `num_questions`: Number of questions (1-20, default: 5)
   - `difficulty`: "easy", "medium", or "hard" (default: "medium")
+  - `file`: PDF file (optional - provide either this or text_content)
+  - `text_content`: Direct text input (optional - provide either this or file)
 
-### Question Generation with Snowflake Cortex
+### Question Generation with Snowflake Cortex (Form-based)
 - **POST** `/generate-questions/snowflake`
-- Upload PDF file and generate questions using Snowflake Cortex AI
+- Generate questions using Snowflake Cortex AI with either PDF upload or text input
 - Same form data as DeepSeek endpoint
+
+### Question Generation with DeepSeek (JSON)
+- **POST** `/generate-questions/deepseek/json`
+- Generate questions using DeepSeek AI with JSON input
+- JSON body:
+  ```json
+  {
+    "content": "Your text content here",
+    "question_type": "mcq",
+    "num_questions": 5,
+    "difficulty": "medium"
+  }
+  ```
+
+### Question Generation with Snowflake Cortex (JSON)
+- **POST** `/generate-questions/snowflake/json`
+- Generate questions using Snowflake Cortex AI with JSON input
+- Same JSON structure as DeepSeek JSON endpoint
 
 ## API Documentation
 
@@ -92,12 +112,29 @@ Once running, visit:
 # Health check
 curl http://localhost:8000/health
 
-# Generate MCQ questions using DeepSeek
+# Generate MCQ questions using DeepSeek with PDF file
 curl -X POST "http://localhost:8000/generate-questions/deepseek" \
   -F "file=@sample.pdf" \
   -F "question_type=mcq" \
   -F "num_questions=5" \
   -F "difficulty=medium"
+
+# Generate MCQ questions using DeepSeek with text input
+curl -X POST "http://localhost:8000/generate-questions/deepseek" \
+  -F "text_content=Your educational content here..." \
+  -F "question_type=mcq" \
+  -F "num_questions=5" \
+  -F "difficulty=medium"
+
+# Generate questions using JSON endpoint
+curl -X POST "http://localhost:8000/generate-questions/deepseek/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Your educational content here...",
+    "question_type": "mcq",
+    "num_questions": 5,
+    "difficulty": "medium"
+  }'
 ```
 
 ### Using Python requests
@@ -109,7 +146,7 @@ import requests
 response = requests.get("http://localhost:8000/health")
 print(response.json())
 
-# Generate questions
+# Generate questions from PDF file
 with open("sample.pdf", "rb") as f:
     files = {"file": f}
     data = {
@@ -123,6 +160,32 @@ with open("sample.pdf", "rb") as f:
         data=data
     )
     print(response.json())
+
+# Generate questions from text input (form-based)
+data = {
+    "text_content": "Your educational content here...",
+    "question_type": "mcq",
+    "num_questions": 5,
+    "difficulty": "medium"
+}
+response = requests.post(
+    "http://localhost:8000/generate-questions/deepseek",
+    data=data
+)
+print(response.json())
+
+# Generate questions from text input (JSON-based)
+json_data = {
+    "content": "Your educational content here...",
+    "question_type": "mcq",
+    "num_questions": 5,
+    "difficulty": "medium"
+}
+response = requests.post(
+    "http://localhost:8000/generate-questions/deepseek/json",
+    json=json_data
+)
+print(response.json())
 ```
 
 ## Response Format
